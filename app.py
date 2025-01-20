@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import lightgbm as lgb
 import numpy as np
+import random
 
 # Define request schema
 class PredictionRequest(BaseModel):
@@ -28,9 +29,15 @@ async def predict(request: PredictionRequest):
         marks = request.marks
         year = request.year
 
-        # Handle edge case for highest marks
-        if marks == 720:
+        # Handle cases for special conditions
+        if marks > 720:
+            raise HTTPException(status_code=400, detail="Marks cannot be greater than 720.")
+        elif marks == 720:
             return {"predicted_rank": 1}
+        elif 705 <= marks <= 719:
+            # Return a random rank between 10 and 90
+            random_rank = random.randint(10, 90)
+            return {"predicted_rank": random_rank}
 
         # Prepare input for prediction
         features = np.array([[marks, year]])
@@ -38,4 +45,4 @@ async def predict(request: PredictionRequest):
 
         return {"predicted_rank": round(predicted_rank[0])}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
