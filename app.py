@@ -34,11 +34,15 @@ async def predict(request: PredictionRequest):
             raise HTTPException(status_code=400, detail="Marks cannot be greater than 720.")
         elif marks == 720:
             return {"predicted_rank": 1}
-        elif 705 <= marks <= 719:
+        elif 710 <= marks <= 719:
             # Return a random rank between 10 and 90
-            random_rank = random.randint(10, 90)
+            random_rank = random.randint(10, 50)
             return {"predicted_rank": random_rank}
-
+        elif 705 <= marks <= 709:
+            # Return a random rank between 10 and 90
+            random_rank = random.randint(50, 70)
+            return {"predicted_rank": random_rank}
+        
         # Prepare input for prediction
         features = np.array([[marks, year]])
         predicted_rank = model.predict(features)
