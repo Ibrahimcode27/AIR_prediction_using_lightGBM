@@ -10,9 +10,7 @@ class PredictionRequest(BaseModel):
     year: int
 
 # Load the trained LightGBM model
-model = lgb.Booster(model_file='neet_rank_model.txt')
-
-# Initialize FastAPI app
+model = lgb.Booster(model_file='/mnt/data/neet_rank_model.txt')  # Adjust path if needed
 app = FastAPI()
 
 @app.get("/")
@@ -29,24 +27,26 @@ async def predict(request: PredictionRequest):
         marks = request.marks
         year = request.year
 
-        # Handle cases for special conditions
-        if marks > 720:
-            raise HTTPException(status_code=400, detail="Marks cannot be greater than 720.")
-        elif marks == 720:
-            return {"predicted_rank": 1}
-        elif 710 <= marks <= 719:
-            # Return a random rank between 10 and 90
-            random_rank = random.randint(10, 50)
-            return {"predicted_rank": random_rank}
-        elif 705 <= marks <= 709:
-            # Return a random rank between 10 and 90
-            random_rank = random.randint(50, 70)
-            return {"predicted_rank": random_rank}
-        
-        # Prepare input for prediction
-        features = np.array([[marks, year]])
-        predicted_rank = model.predict(features)
+        # Ensure the mark is within the valid range (700-715)
+        if marks > 715 or marks < 700:
+            raise HTTPException(status_code=400, detail="Marks should be between 700 and 715.")
 
-        return {"predicted_rank": round(predicted_rank[0])}
+        # Define the rank range for marks between 715 and 700
+        min_marks, max_marks = 700, 715
+        min_rank, max_rank = 2400, 101  # 700 marks → 2400-2500 rank, 715 marks → 101-200 rank
+
+        # Linear interpolation of rank based on marks
+        interpolated_rank = int(
+            min_rank + (max_rank - min_rank) * ((marks - min_marks) / (max_marks - min_marks))
+        )
+
+        # Add slight randomness within a small range (±50 for variation)
+        random_rank = random.randint(interpolated_rank - 50, interpolated_rank + 50)
+
+        # Ensure the rank does not exceed defined limits
+        final_rank = max(min_rank, min(max_rank, random_rank))
+
+        return {"predicted_rank": final_rank}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
